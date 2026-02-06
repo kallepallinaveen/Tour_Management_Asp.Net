@@ -1,11 +1,12 @@
 pipeline {
-    agent any // Use a Windows node with Visual Studio installed
+    agent { label 'windows' }  // Make sure this node has Visual Studio installed
 
     environment {
-        SOLUTION_FILE = "DotNetFrameworkProject_CE040_CE087/Tour_Management.sln"
+        SOLUTION_FILE = "DotNetFrameworkProject_CE040_CE087\\Tour_Management.sln"
         BUILD_CONFIG = "Release"
         MSBUILD_PATH = "C:\\Program Files\\Microsoft Visual Studio\\18\\Enterprise\\MSBuild\\Current\\Bin\\MSBuild.exe"
-        PUBLISH_DIR = "C:\\inetpub\\wwwroot\\TourManagement" // IIS deploy path
+        NUGET_PATH = "C:\\Program Files\\NuGet\\nuget.exe"
+        PUBLISH_DIR = "C:\\inetpub\\wwwroot\\TourManagement"  // IIS deploy folder
     }
 
     stages {
@@ -17,13 +18,13 @@ pipeline {
 
         stage('Restore NuGet Packages') {
             steps {
-                bat '"C:\\Program Files\\NuGet\\nuget.exe" restore %SOLUTION_FILE%'
+                bat "\"%NUGET_PATH%\" restore \"%SOLUTION_FILE%\""
             }
         }
 
         stage('Build') {
             steps {
-                bat "\"%MSBUILD_PATH%\" %SOLUTION_FILE% /p:Configuration=%BUILD_CONFIG% /t:Build /v:m"
+                bat "\"%MSBUILD_PATH%\" \"%SOLUTION_FILE%\" /p:Configuration=%BUILD_CONFIG% /t:Build /v:m"
             }
         }
 
@@ -36,9 +37,11 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo "Deploying to IIS..."
+                // Create publish folder if it doesn't exist
                 bat """
-                xcopy /Y /E /I DotNetFrameworkProject_CE040_CE087\\Tour_Management\\bin\\%BUILD_CONFIG%\\* %PUBLISH_DIR%\\bin\\
-                xcopy /Y /E /I DotNetFrameworkProject_CE040_CE087\\Tour_Management\\* %PUBLISH_DIR%\\
+                if not exist "%PUBLISH_DIR%" mkdir "%PUBLISH_DIR%"
+                xcopy /Y /E /I DotNetFrameworkProject_CE040_CE087\\Tour_Management\\bin\\%BUILD_CONFIG%\\* "%PUBLISH_DIR%\\bin\\"
+                xcopy /Y /E /I DotNetFrameworkProject_CE040_CE087\\Tour_Management\\* "%PUBLISH_DIR%\\"
                 """
                 echo "Deployment complete"
             }
@@ -50,7 +53,7 @@ pipeline {
             echo "Build and deployment completed successfully!"
         }
         failure {
-            echo "Build failed!"
+            echo "Build failed! Check Jenkins console output."
         }
     }
 }
