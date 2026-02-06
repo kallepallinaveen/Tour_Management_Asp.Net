@@ -1,5 +1,5 @@
 pipeline {
-    agent { label 'windows' }  // Make sure this node has Visual Studio installed
+    agent any  // Make sure this node has Visual Studio installed
 
     environment {
         SOLUTION_FILE = "DotNetFrameworkProject_CE040_CE087\\Tour_Management.sln"
